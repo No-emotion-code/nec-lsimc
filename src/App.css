@@ -380,19 +380,81 @@
   border-top-color: var(--blue);
 }
 
-.election-control h2 { margin-bottom: 5px; }
-.election-control p { color: var(--muted); font-size: 12px; margin: 0; }
-.account-edit-row { display: grid; grid-template-columns: 1.2fr 1fr .7fr; gap: 8px; border-top: 1px solid var(--line); padding: 8px 0; }
-.account-edit-row input, .account-edit-row select { min-width: 0; border: 1px solid #c8d4d0; background: #fffefa; padding: 8px; color: var(--ink); font-size: 11px; }
-.results-panel { margin-top: 18px; border-top: 3px solid var(--coral); }
-.result-list { margin: 14px 0 18px; }
-.result-row { display: grid; grid-template-columns: 28px 1fr 45px; gap: 10px; align-items: center; border-top: 1px solid var(--line); padding: 11px 0; }
-.result-row strong { color: var(--coral); font: 14px Georgia, serif; }
-.result-row span { font-size: 12px; }
-.result-row b { text-align: right; font: 20px Georgia, serif; }
-.fairness-proof { border-top: 1px solid var(--line); padding-top: 13px; display: grid; gap: 4px; }
-.fairness-proof strong { font: 14px Georgia, serif; }
-.fairness-proof span { color: var(--muted); font-size: 10px; }
+.election-control h2 {
+  margin-bottom: 5px;
+}
+
+.election-control p {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0;
+}
+
+.account-edit-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr .7fr;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding: 8px 0;
+}
+
+.account-edit-row input,
+.account-edit-row select {
+  min-width: 0;
+  border: 1px solid #c8d4d0;
+  background: #fffefa;
+  padding: 8px;
+  color: var(--ink);
+  font-size: 11px;
+}
+
+.results-panel {
+  margin-top: 18px;
+  border-top: 3px solid var(--coral);
+}
+
+.result-list {
+  margin: 14px 0 18px;
+}
+
+.result-row {
+  display: grid;
+  grid-template-columns: 28px 1fr 45px;
+  gap: 10px;
+  align-items: center;
+  border-top: 1px solid var(--line);
+  padding: 11px 0;
+}
+
+.result-row strong {
+  color: var(--coral);
+  font: 14px Georgia, serif;
+}
+
+.result-row span {
+  font-size: 12px;
+}
+
+.result-row b {
+  text-align: right;
+  font: 20px Georgia, serif;
+}
+
+.fairness-proof {
+  border-top: 1px solid var(--line);
+  padding-top: 13px;
+  display: grid;
+  gap: 4px;
+}
+
+.fairness-proof strong {
+  font: 14px Georgia, serif;
+}
+
+.fairness-proof span {
+  color: var(--muted);
+  font-size: 10px;
+}
 
 .login-shell {
   min-height: 100vh;

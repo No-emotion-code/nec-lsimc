@@ -1,51 +1,51 @@
 {
-  "electionOpen": false,
-  "accounts": [
-    {
-      "id": "ADMIN-001",
-      "name": "LSU Election Committee",
-      "role": "admin",
-      "password": "admin2026",
-      "voted": false
-    },
-    {
-      "id": "AUDIT-001",
-      "name": "Student Electoral Board",
-      "role": "auditor",
-      "password": "audit2026",
-      "voted": false
-    }
-  ],
-  "candidates": [
-    {
-      "name": "Maya Okafor",
-      "vpName": "Samuel Kpadeh",
-      "vpImage": "",
-      "role": "Civic Alliance",
-      "mark": "MO",
-      "color": "coral",
-      "detail": "Open government, resilient neighborhoods, and public-first services.",
-      "image": ""
-    },
-    {
-      "name": "Elias Reed",
-      "vpName": "Grace Kollie",
-      "vpImage": "",
-      "role": "Forward Union",
-      "mark": "ER",
-      "color": "blue",
-      "detail": "A stronger local economy built around skills, access, and accountability.",
-      "image": ""
-    },
-    {
-      "name": "Priya Shah",
-      "vpName": "Emmanuel Doe",
-      "vpImage": "",
-      "role": "Common Ground",
-      "mark": "PS",
-      "color": "yellow",
-      "detail": "Practical climate action and a fairer path to shared prosperity.",
-      "image": ""
-    }
-  ]
+    "electionOpen": false,
+    "accounts": [
+        {
+            "id": "ADMIN-001",
+            "name": "LSU Election Committee",
+            "role": "admin",
+            "password": "admin2026",
+            "voted": false
+        },
+        {
+            "id": "AUDIT-001",
+            "name": "Student Electoral Board",
+            "role": "auditor",
+            "password": "audit2026",
+            "voted": false
+        }
+    ],
+    "candidates": [
+        {
+            "name": "Maya Okafor",
+            "vpName": "Samuel Kpadeh",
+            "vpImage": "",
+            "role": "Civic Alliance",
+            "mark": "MO",
+            "color": "coral",
+            "detail": "Open government, resilient neighborhoods, and public-first services.",
+            "image": ""
+        },
+        {
+            "name": "Elias Reed",
+            "vpName": "Grace Kollie",
+            "vpImage": "",
+            "role": "Forward Union",
+            "mark": "ER",
+            "color": "blue",
+            "detail": "A stronger local economy built around skills, access, and accountability.",
+            "image": ""
+        },
+        {
+            "name": "Priya Shah",
+            "vpName": "Emmanuel Doe",
+            "vpImage": "",
+            "role": "Common Ground",
+            "mark": "PS",
+            "color": "yellow",
+            "detail": "Practical climate action and a fairer path to shared prosperity.",
+            "image": ""
+        }
+    ]
 }
