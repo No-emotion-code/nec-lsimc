@@ -51,6 +51,7 @@ const server = http.createServer(async (request, response) => {
       const nextState = {
         accounts: Array.isArray(incoming.accounts) ? incoming.accounts : state.accounts,
         candidates: Array.isArray(incoming.candidates) ? incoming.candidates : state.candidates,
+        electionOpen: typeof incoming.electionOpen === 'boolean' ? incoming.electionOpen : Boolean(state.electionOpen),
       }
       await writeState(nextState)
       response.end(JSON.stringify(nextState))

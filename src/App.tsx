@@ -4,6 +4,7 @@ import './App.css'
 type Candidate = {
   name: string
   vpName: string
+  vpImage: string
   role: string
   mark: string
   color: string
@@ -12,7 +13,7 @@ type Candidate = {
 }
 
 type Role = 'voter' | 'admin' | 'auditor'
-type Account = { id: string; name: string; role: Role; password: string; voted: boolean }
+type Account = { id: string; name: string; role: Role; password: string; voted: boolean; votedCandidate?: string }
 
 const initialAccounts: Account[] = [
   { id: 'ADMIN-001', name: 'LSU Election Committee', role: 'admin', password: 'admin2026', voted: false },
@@ -23,6 +24,7 @@ const candidates: Candidate[] = [
   {
     name: 'Maya Okafor',
     vpName: 'Samuel Kpadeh',
+    vpImage: '',
     role: 'Civic Alliance',
     mark: 'MO',
     color: 'coral',
@@ -32,6 +34,7 @@ const candidates: Candidate[] = [
   {
     name: 'Elias Reed',
     vpName: 'Grace Kollie',
+    vpImage: '',
     role: 'Forward Union',
     mark: 'ER',
     color: 'blue',
@@ -41,6 +44,7 @@ const candidates: Candidate[] = [
   {
     name: 'Priya Shah',
     vpName: 'Emmanuel Doe',
+    vpImage: '',
     role: 'Common Ground',
     mark: 'PS',
     color: 'yellow',
@@ -49,9 +53,18 @@ const candidates: Candidate[] = [
   },
 ]
 
+function readImage(file: File | undefined, setImage: (image: string) => void) {
+  if (!file) return
+  const reader = new FileReader()
+  reader.addEventListener('load', () => setImage(typeof reader.result === 'string' ? reader.result : ''))
+  reader.readAsDataURL(file)
+}
+
 function App() {
   const [accounts, setAccounts] = useState<Account[]>(initialAccounts)
   const [sessionId, setSessionId] = useState<string | null>(null)
+  const [view, setView] = useState<'dashboard' | 'vote'>('dashboard')
+  const [electionOpen, setElectionOpen] = useState(false)
   const [loginId, setLoginId] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
   const [loginError, setLoginError] = useState('')
@@ -67,6 +80,7 @@ function App() {
   const [candidatePlan, setCandidatePlan] = useState('')
   const [candidateVp, setCandidateVp] = useState('')
   const [candidateImage, setCandidateImage] = useState('')
+  const [candidateVpImage, setCandidateVpImage] = useState('')
   const [published, setPublished] = useState(false)
   const [adminVoterName, setAdminVoterName] = useState('')
   const [adminEligibility, setAdminEligibility] = useState('')
@@ -83,19 +97,20 @@ function App() {
   }))
 
   useEffect(() => {
-    fetch('/api/state').then((response) => response.json()).then((state: { accounts?: Account[]; candidates?: Candidate[] }) => {
+    fetch('/api/state').then((response) => response.json()).then((state: { accounts?: Account[]; candidates?: Candidate[]; electionOpen?: boolean }) => {
       if (state.accounts) setAccounts(state.accounts)
       if (state.candidates) setCandidateList(state.candidates)
+      if (typeof state.electionOpen === 'boolean') setElectionOpen(state.electionOpen)
       setDataReady(true)
     }).catch(() => setDataReady(true))
   }, [])
   useEffect(() => {
     if (!dataReady) return
-    fetch('/api/state', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accounts, candidates: candidateList }) }).catch(() => undefined)
-  }, [accounts, candidateList, dataReady])
+    fetch('/api/state', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accounts, candidates: candidateList, electionOpen }) }).catch(() => undefined)
+  }, [accounts, candidateList, electionOpen, dataReady])
   useEffect(() => {
     const updateCountdown = () => {
-      const target = new Date('2026-09-25T08:00:00').getTime()
+      const target = new Date('2026-09-26T08:00:00').getTime()
       const remaining = Math.max(0, target - Date.now())
       const days = Math.floor(remaining / 86400000)
       const hours = Math.floor((remaining % 86400000) / 3600000)
@@ -111,20 +126,22 @@ function App() {
     const account = accounts.find((item) => item.id.toLowerCase() === loginId.trim().toLowerCase() && item.password === loginPassword)
     if (!account) { setLoginError('Invalid admin-issued credential or password.'); return }
     setSessionId(account.id)
-    setRegistered(account.role === 'voter')
+    setRegistered(true)
     setVoted(account.voted)
+    setView(account.role === 'voter' ? 'vote' : 'dashboard')
     setLoginError('')
   }
 
   const publishCandidate = () => {
     if (!candidateName || !candidateParty || !candidatePlan) return
     if (!candidateVp) return
-    setCandidateList((current) => [...current, { name: candidateName, vpName: candidateVp, role: candidateParty, mark: candidateName.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase(), color: 'blue', detail: candidatePlan, image: candidateImage }])
+    setCandidateList((current) => [...current, { name: candidateName, vpName: candidateVp, vpImage: candidateVpImage, role: candidateParty, mark: candidateName.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase(), color: 'blue', detail: candidatePlan, image: candidateImage }])
     setCandidateName('')
     setCandidateParty('')
     setCandidatePlan('')
     setCandidateVp('')
     setCandidateImage('')
+    setCandidateVpImage('')
     setPublished(true)
   }
 
@@ -149,10 +166,17 @@ function App() {
   }
 
   const castVote = () => {
-    if (!session || session.role !== 'voter' || session.voted || !selected) return
-    setAccounts((current) => current.map((account) => account.id === session.id ? { ...account, voted: true } : account))
+    if (!session || !electionOpen || session.voted || !selected) return
+    setAccounts((current) => current.map((account) => account.id === session.id ? { ...account, voted: true, votedCandidate: selected } : account))
     setVoted(true)
   }
+
+  const updateAccount = (accountId: string, changes: Partial<Account>) => {
+    if (!canManageElection) return
+    setAccounts((current) => current.map((account) => account.id === accountId ? { ...account, ...changes } : account))
+  }
+
+  const results = candidateList.map((candidate) => ({ ...candidate, votes: accounts.filter((account) => account.votedCandidate === candidate.name).length })).sort((a, b) => b.votes - a.votes)
 
   if (!session) return <LoginScreen loginId={loginId} setLoginId={setLoginId} loginPassword={loginPassword} setLoginPassword={setLoginPassword} loginError={loginError} login={login} />
 
@@ -165,23 +189,27 @@ function App() {
         </a>
         <div className="election-status"><span className="status-dot" /> Live election · Mianyang campus</div>
         <div className="session-chip">{session.role} · {session.name}</div>
+        {role !== 'voter' && <button className="mode-button" type="button" onClick={() => setView(view === 'dashboard' ? 'vote' : 'dashboard')}>{view === 'dashboard' ? 'Voting area' : 'Dashboard'}</button>}
         <button className="mode-button" type="button" onClick={() => setSessionId(null)}>Sign out</button>
       </header>
 
       <div className="content-grid" id="top">
-        {role !== 'voter' ? (
+        {view === 'dashboard' && role !== 'voter' ? (
           <section className="admin-console">
             <div className="eyebrow"><span className="eyebrow-line" /> {role === 'admin' ? 'ELECTION ADMINISTRATION' : 'PUBLIC AUDIT VIEW'} <span className="eyebrow-line" /></div>
-            <div className="intro-row admin-intro"><div><h1>{role === 'admin' ? <>Run the <em>union.</em></> : <>Inspect the <em>election.</em></>}</h1><p className="intro-copy">{role === 'admin' ? 'Manage the LSU election, issue student credentials, and monitor participation with accountability.' : 'Review student participation, election records, and public events without access to election controls.'}</p></div><div className="admin-state"><span className="status-dot" /> {role === 'admin' ? 'ELECTION LIVE' : 'READ ONLY'}<strong>Friday · {countdown}</strong></div></div>
+            <div className="intro-row admin-intro"><div><h1>{role === 'admin' ? <>Run the <em>union.</em></> : <>Inspect the <em>election.</em></>}</h1><p className="intro-copy">{role === 'admin' ? 'Manage the LSU election, issue student credentials, and monitor participation with accountability.' : 'Review student participation, election records, and public events without access to election controls.'}</p></div><div className="admin-state"><span className="status-dot" /> {role === 'admin' ? 'ELECTION LIVE' : 'READ ONLY'}<strong>Saturday · {countdown}</strong></div></div>
             <div className="admin-metrics"><div><span>ISSUED ACCOUNTS</span><strong>{accounts.length}</strong><small>Admin-controlled credentials</small></div><div><span>BALLOTS CAST</span><strong>{accounts.filter((account) => account.voted).length}</strong><small>{accounts.filter((account) => account.role === 'voter' && account.voted).length} voter receipts</small></div><div><span>CHAIN HEALTH</span><strong>99.98%</strong><small className="healthy">● All validators online</small></div></div>
+            {canManageElection && <section className="election-control panel-accent"><div><div className="panel-label">ELECTION CONTROL <span>Admin only</span></div><h2>{electionOpen ? 'Election is open' : 'Election is closed'}</h2><p>{electionOpen ? 'Eligible accounts can vote now. Close the process to lock ballots and publish the tally.' : 'Voting is locked. Open the election when the committee is ready to begin.'}</p></div><button className="primary-button" type="button" onClick={() => setElectionOpen((current) => !current)}>{electionOpen ? 'Close election' : 'Open election'} <span>↗</span></button></section>}
             <div className="admin-columns">
-              {canManageElection ? <section className="panel-accent candidate-manager"><div className="panel-label">01 <span>Candidate registry</span></div><h2>Publish a candidate</h2><p>Add the presidential and VP ticket to the public LSU ballot.</p><div className="admin-form"><label>PRESIDENTIAL CANDIDATE<input value={candidateName} onChange={(event) => setCandidateName(event.target.value)} placeholder="e.g. Jordan Davis" /></label><label>VICE PRESIDENT CANDIDATE<input value={candidateVp} onChange={(event) => setCandidateVp(event.target.value)} placeholder="e.g. Alex Johnson" /></label><label>PLATFORM OR SLATE<input value={candidateParty} onChange={(event) => setCandidateParty(event.target.value)} placeholder="e.g. Student First" /></label><label>PHOTO URL<input value={candidateImage} onChange={(event) => setCandidateImage(event.target.value)} placeholder="https://..." /></label><label>ONE-LINE PLATFORM<textarea value={candidatePlan} onChange={(event) => setCandidatePlan(event.target.value)} placeholder="What will this ticket deliver for students?" /></label><button className="primary-button" type="button" disabled={!candidateName || !candidateVp || !candidateParty || !candidatePlan} onClick={publishCandidate}>Publish ticket <span>↗</span></button>{published && <div className="published-note">✓ Candidate ticket published to the ballot</div>}</div></section> : <section className="side-panel access-panel"><div className="panel-label">01 <span>Access policy</span></div><h2>Read-only access</h2><p>Auditors can verify public chain events and election totals. Candidate, credential, and ballot controls are restricted to election administrators.</p><span className="verified-pill">AUDITOR ROLE ACTIVE</span></section>}
-              <section className="side-panel registry-panel"><div className="side-heading"><span>PUBLIC BALLOT</span><span className="verified-pill">{candidateList.length} TICKETS</span></div><div className="registry-list">{candidateList.map((candidate) => <div className="registry-item" key={candidate.name}>{candidate.image ? <img className="candidate-photo" src={candidate.image} alt="" /> : <span className={`candidate-mark ${candidate.color}`}>{candidate.mark}</span>}<div><strong>{candidate.name}</strong><span>VP: {candidate.vpName}</span><span>{candidate.role}</span></div>{canManageElection ? <button className="delete-button" type="button" onClick={() => deleteCandidate(candidate.name)}>Delete</button> : <b>LIVE</b>}</div>)}</div><button className="outline-button" type="button">Preview voter ballot <span>↗</span></button></section>
+              {canManageElection ? <section className="panel-accent candidate-manager"><div className="panel-label">01 <span>Candidate registry</span></div><h2>Publish a candidate</h2><p>Add the presidential and VP ticket to the public LSU ballot.</p><div className="admin-form"><label>PRESIDENTIAL CANDIDATE<input value={candidateName} onChange={(event) => setCandidateName(event.target.value)} placeholder="e.g. Jordan Davis" /></label><label>VICE PRESIDENT CANDIDATE<input value={candidateVp} onChange={(event) => setCandidateVp(event.target.value)} placeholder="e.g. Alex Johnson" /></label><label>PLATFORM OR SLATE<input value={candidateParty} onChange={(event) => setCandidateParty(event.target.value)} placeholder="e.g. Student First" /></label><label>PRESIDENTIAL PHOTO<input type="file" accept="image/*" onChange={(event) => readImage(event.target.files?.[0], setCandidateImage)} /></label><label>VP PHOTO<input type="file" accept="image/*" onChange={(event) => readImage(event.target.files?.[0], setCandidateVpImage)} /></label><label>ONE-LINE PLATFORM<textarea value={candidatePlan} onChange={(event) => setCandidatePlan(event.target.value)} placeholder="What will this ticket deliver for students?" /></label><button className="primary-button" type="button" disabled={!candidateName || !candidateVp || !candidateParty || !candidatePlan} onClick={publishCandidate}>Publish ticket <span>↗</span></button>{published && <div className="published-note">✓ Candidate ticket published to the ballot</div>}</div></section> : <section className="side-panel access-panel"><div className="panel-label">01 <span>Access policy</span></div><h2>Read-only access</h2><p>Auditors can verify public chain events and election totals. Candidate, credential, and ballot controls are restricted to election administrators.</p><span className="verified-pill">AUDITOR ROLE ACTIVE</span></section>}
+              <section className="side-panel registry-panel"><div className="side-heading"><span>PUBLIC BALLOT</span><span className="verified-pill">{candidateList.length} TICKETS</span></div><div className="registry-list">{candidateList.map((candidate) => <div className="registry-item" key={candidate.name}>{candidate.image ? <img className="candidate-photo" src={candidate.image} alt="" /> : <span className={`candidate-mark ${candidate.color}`}>{candidate.mark}</span>}<div><strong>{candidate.name}</strong><span>VP: {candidate.vpName}</span><span>{candidate.role}</span></div>{candidate.vpImage && <img className="vp-photo" src={candidate.vpImage} alt="" />}{canManageElection ? <button className="delete-button" type="button" onClick={() => deleteCandidate(candidate.name)}>Delete</button> : <b>LIVE</b>}</div>)}</div><button className="outline-button" type="button">Preview voter ballot <span>↗</span></button></section>
             </div>
             <section className="side-panel monitor-panel"><div className="side-heading"><span>LIVE ELECTION MONITOR</span><button type="button" className="live-tag"><span className="status-dot" /> LIVE</button></div><div className="monitor-grid"><div><span>LAST BLOCK</span><strong>#008421</strong><small>sealed 18 sec ago</small></div><div><span>REGISTRATIONS / HR</span><strong>126</strong><small>within expected range</small></div><div><span>VOTE DUPLICATES</span><strong>0</strong><small className="healthy">● No anomalies detected</small></div><div><span>PUBLIC AUDIT</span><strong>Open</strong><small>All receipts verifiable</small></div></div></section>
             {canManageElection && <section className="side-panel admin-credential-panel"><div className="panel-label">02 <span>Voter credentials</span></div><h2>Issue a credential</h2><p>Use only after checking the voter against the official eligibility register.</p><div className="admin-form"><label>VOTER NAME<input value={adminVoterName} onChange={(event) => setAdminVoterName(event.target.value)} placeholder="Verified voter name" /></label><label>ELIGIBILITY REFERENCE<input value={adminEligibility} onChange={(event) => setAdminEligibility(event.target.value)} placeholder="Official reference" /></label><button className="primary-button" type="button" disabled={!adminVoterName || !adminEligibility} onClick={issueAdminCredential}>Issue credential <span>↗</span></button>{adminCredential && <div className="published-note">✓ Credential issued: {adminCredential}</div>}</div></section>}
             {canManageElection && <section className="side-panel admin-credential-panel"><div className="panel-label">02 <span>Admin-issued login credentials</span></div><h2>Generate access</h2><p>Verify the person first, assign their role, then hand them the generated login details.</p><div className="admin-form"><label>ACCOUNT NAME<input value={adminVoterName} onChange={(event) => setAdminVoterName(event.target.value)} placeholder="Verified person" /></label><label>ELIGIBILITY REFERENCE<input value={adminEligibility} onChange={(event) => setAdminEligibility(event.target.value)} placeholder="Official reference" /></label><label>ASSIGN ROLE<select value={newAccountRole} onChange={(event) => setNewAccountRole(event.target.value as Role)}><option value="voter">Voter</option><option value="auditor">Auditor</option><option value="admin">Election admin</option></select></label><button className="primary-button" type="button" disabled={!adminVoterName || !adminEligibility} onClick={issueAdminCredential}>Generate credential <span>↗</span></button>{adminCredential && <div className="published-note">✓ Login issued: {adminCredential}</div>}</div></section>}
             {canManageElection && <section className="side-panel account-registry-panel"><div className="side-heading"><span>ISSUED CREDENTIALS</span><span className="verified-pill">{accounts.length} ACCOUNTS</span></div><div className="account-list">{accounts.map((account) => <div className="account-row" key={account.id}><div><strong>{account.name}</strong><span>{account.id} · {account.role}</span></div>{account.id === sessionId ? <small className="current-account">CURRENT</small> : <button className="delete-button" type="button" onClick={() => deleteAccount(account.id)}>Delete</button>}</div>)}</div></section>}
+            {canManageElection && <section className="side-panel account-registry-panel"><div className="side-heading"><span>EDIT ACCOUNT DETAILS</span><span className="verified-pill">ADMIN ONLY</span></div><div className="account-list">{accounts.map((account) => <div className="account-edit-row" key={`edit-${account.id}`}><input value={account.name} onChange={(event) => updateAccount(account.id, { name: event.target.value })} /><input value={account.password} onChange={(event) => updateAccount(account.id, { password: event.target.value })} /><select value={account.role} onChange={(event) => updateAccount(account.id, { role: event.target.value as Role })}><option value="voter">Voter</option><option value="auditor">Auditor</option><option value="admin">Admin</option></select></div>)}</div></section>}
+            {!electionOpen && <section className="side-panel results-panel"><div className="side-heading"><span>FINAL ELECTION RESULT</span><span className="verified-pill">SEALED</span></div><div className="result-list">{results.map((candidate, index) => <div className="result-row" key={candidate.name}><strong>#{index + 1}</strong><span>{candidate.name} + {candidate.vpName}</span><b>{candidate.votes}</b></div>)}</div><div className="fairness-proof"><strong>Fairness record</strong><span>{accounts.filter((account) => account.voted).length} ballots · {new Set(accounts.filter((account) => account.votedCandidate).map((account) => account.id)).size} unique voters · 0 duplicate credentials</span></div></section>}
           </section>
         ) : (
           <>
@@ -193,10 +221,12 @@ function App() {
                   <h1>Your voice, <em>represented.</em></h1>
                   <p className="intro-copy">Choose the student leaders who will represent the Liberian Student Union in Mianyang.</p>
                 </div>
-                <div className="deadline"><span>ELECTION DAY · FRIDAY, SEPTEMBER 25</span><strong>{countdown || 'Friday at 08:00'}</strong></div>
+                <div className="deadline"><span>ELECTION DAY · SATURDAY, SEPTEMBER 26</span><strong>{electionOpen ? countdown || 'Saturday at 08:00' : 'ELECTION CLOSED'}</strong></div>
               </div>
 
-              {!registered ? (
+              {!electionOpen ? (
+                <section className="registration-panel panel-accent"><div className="panel-label">ELECTION CLOSED <span>Results are sealed</span></div><h2>Voting has ended</h2><p>The election committee has closed the process. Results are now available in the dashboard.</p><button className="primary-button" type="button" onClick={() => setView('dashboard')}>View dashboard results <span>↗</span></button></section>
+              ) : !registered ? (
                 <section className="registration-panel panel-accent">
                   <div className="panel-label">01 <span>Identity check</span></div>
                   <h2>Credential required</h2>
@@ -211,7 +241,7 @@ function App() {
                   <div className="success-icon">✓</div>
                   <div className="panel-label">BALLOT CAST <span>Receipt confirmed</span></div>
                   <h2>Your vote is sealed.</h2>
-                  <p>Your encrypted ballot was committed to the Civic Ledger. It can be counted, but never connected back to your identity.</p>
+                  <p>Your encrypted ballot was committed to the LSU election record. It can be counted, but never connected back to your identity.</p>
                   <p>Your encrypted ballot was committed to the LSU election record. It can be counted, but never connected back to your identity.</p>
                   <div className="receipt-code"><span>TRANSACTION HASH</span><strong>0x7fa2e1...91b4c08d</strong><button type="button" title="Copy receipt">□</button></div>
                   <button className="text-button" type="button" onClick={() => setVoted(false)}>View ballot receipt <span>↗</span></button>
@@ -225,11 +255,12 @@ function App() {
                       <button className={`candidate-card ${selected === candidate.name ? 'selected' : ''}`} type="button" key={candidate.name} onClick={() => setSelected(candidate.name)}>
                         {candidate.image ? <img className="candidate-photo" src={candidate.image} alt="" /> : <span className={`candidate-mark ${candidate.color}`}>{candidate.mark}</span>}
                         <span className="candidate-info"><strong>{candidate.name}</strong><small>VP: {candidate.vpName} · {candidate.role}</small><span>{candidate.detail}</span></span>
+                        {candidate.vpImage && <img className="vp-photo" src={candidate.vpImage} alt={`${candidate.vpName} portrait`} />}
                         <span className="radio-mark">{selected === candidate.name ? '✓' : ''}</span>
                       </button>
                     ))}
                   </div>
-                  <div className="ballot-footer"><span><span className="lock">⌁</span> Your selection is encrypted</span><button className="primary-button" type="button" disabled={!selected || session.voted} onClick={castVote}>Cast my vote <span>↗</span></button></div>
+                  <div className="ballot-footer"><span><span className="lock">⌁</span> Your selection is encrypted</span><button className="primary-button" type="button" disabled={!selected || session.voted || !electionOpen} onClick={castVote}>Cast my vote <span>↗</span></button></div>
                 </section>
               )}
 
