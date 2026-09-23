@@ -50,7 +50,7 @@ const candidates: Candidate[] = [
 ]
 
 function App() {
-  const [accounts, setAccounts] = useState<Account[]>(() => JSON.parse(localStorage.getItem('civic-accounts') || JSON.stringify(initialAccounts)))
+  const [accounts, setAccounts] = useState<Account[]>(initialAccounts)
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [loginId, setLoginId] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
@@ -60,7 +60,8 @@ function App() {
   const [registered, setRegistered] = useState(false)
   const [selected, setSelected] = useState<string | null>(null)
   const [voted, setVoted] = useState(false)
-  const [candidateList, setCandidateList] = useState<Candidate[]>(() => JSON.parse(localStorage.getItem('lsu-candidates') || JSON.stringify(candidates)))
+  const [candidateList, setCandidateList] = useState<Candidate[]>(candidates)
+  const [dataReady, setDataReady] = useState(false)
   const [candidateName, setCandidateName] = useState('')
   const [candidateParty, setCandidateParty] = useState('')
   const [candidatePlan, setCandidatePlan] = useState('')
@@ -81,8 +82,17 @@ function App() {
     tone: index === 0 ? 'mint' : index % 2 ? 'blue' : 'coral',
   }))
 
-  useEffect(() => { localStorage.setItem('civic-accounts', JSON.stringify(accounts)) }, [accounts])
-  useEffect(() => { localStorage.setItem('lsu-candidates', JSON.stringify(candidateList)) }, [candidateList])
+  useEffect(() => {
+    fetch('/api/state').then((response) => response.json()).then((state: { accounts?: Account[]; candidates?: Candidate[] }) => {
+      if (state.accounts) setAccounts(state.accounts)
+      if (state.candidates) setCandidateList(state.candidates)
+      setDataReady(true)
+    }).catch(() => setDataReady(true))
+  }, [])
+  useEffect(() => {
+    if (!dataReady) return
+    fetch('/api/state', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accounts, candidates: candidateList }) }).catch(() => undefined)
+  }, [accounts, candidateList, dataReady])
   useEffect(() => {
     const updateCountdown = () => {
       const target = new Date('2026-09-25T08:00:00').getTime()

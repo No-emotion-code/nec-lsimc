@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "data": "node server.cjs",
+    "dev:all": "concurrently \"npm run data\" \"npm run dev\"",
+    "start": "node server.cjs",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
@@ -20,6 +23,7 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
+    "concurrently": "^10.0.5",
     "gh-pages": "^6.0.0",
     "oxlint": "^1.81.0",
     "typescript": "~6.0.2",
