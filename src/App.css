@@ -1233,26 +1233,91 @@ h2 {
   }
 
   .topbar {
-    padding-inline: 24px;
+    flex-wrap: wrap;
+    height: auto;
+    padding-block: 14px;
+    gap: 12px 18px;
+  }
+
+  .brand {
+    min-width: 0;
+    flex: 1 1 220px;
+  }
+
+  .session-chip {
+    order: 3;
   }
 
   .election-status {
     display: none;
   }
+
+  .admin-metrics,
+  .admin-columns,
+  .monitor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-metrics > div,
+  .monitor-grid > div {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    padding-left: 0;
+  }
+
+  .admin-metrics > div:last-child,
+  .monitor-grid > div:last-child {
+    border-bottom: 0;
+  }
+
+  .election-control {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 @media (max-width: 560px) {
+  body {
+    min-width: 0;
+  }
+
   .content-grid {
-    width: min(100% - 32px, 1170px);
+    width: min(100% - 24px, 1170px);
   }
 
   .topbar {
-    height: 62px;
+    min-height: 64px;
+    padding-inline: 16px;
   }
 
+  .brand {
+    font-size: 18px;
+    gap: 8px;
+  }
+
+  .mode-button {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 0;
+  }
+
+  .login-shell {
+    padding: 16px;
+  }
+
+  .login-card {
+    padding: 28px 20px;
+  }
+
+  .login-card h1 {
+    font-size: 40px;
+  }
+
+  .admin-form,
+  .account-edit-row,
   .input-row,
-  .ballot-footer {
-    align-items: stretch;
+  .ballot-footer,
+  .sidebar {
+    grid-template-columns: 1fr;
     flex-direction: column;
   }
 
@@ -1290,8 +1355,27 @@ h2 {
     padding: 25px 20px;
   }
 
+  .candidate-card {
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .candidate-info {
+    min-width: 0;
+  }
+
   .candidate-info span {
     display: none;
+  }
+
+  .candidate-mark {
+    flex-basis: 38px;
+    width: 38px;
+    height: 38px;
+  }
+
+  .result-row {
+    grid-template-columns: 22px 1fr 36px;
   }
 }
 
