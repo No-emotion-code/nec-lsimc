@@ -1258,15 +1258,15 @@ h2 {
     grid-template-columns: 1fr;
   }
 
-  .admin-metrics > div,
-  .monitor-grid > div {
+  .admin-metrics>div,
+  .monitor-grid>div {
     border-right: 0;
     border-bottom: 1px solid var(--line);
     padding-left: 0;
   }
 
-  .admin-metrics > div:last-child,
-  .monitor-grid > div:last-child {
+  .admin-metrics>div:last-child,
+  .monitor-grid>div:last-child {
     border-bottom: 0;
   }
 
